@@ -1,0 +1,296 @@
+/**
+   * @brief Instance structure for the Q15 PID Control.
+   */
+  typedef struct
+  {
+    q15_t A0;           /**< The derived gain, A0 = Kp + Ki + Kd . */
+#ifdef ARM_MATH_CM0_FAMILY
+    q15_t A1;
+    q15_t A2;
+#else
+    q31_t A1;           /**< The derived gain A1 = -Kp - 2Kd | Kd.*/
+#endif
+    q15_t state[3];     /**< The state array of length 3. */
+    q15_t Kp;           /**< The proportional gain. */
+    q15_t Ki;           /**< The integral gain. */
+    q15_t Kd;           /**< The derivative gain. */
+  } arm_pid_instance_q15;
+
+  /**
+   * @brief Instance structure for the Q31 PID Control.
+   */
+  typedef struct
+  {
+    q31_t A0;            /**< The derived gain, A0 = Kp + Ki + Kd . */
+    q31_t A1;            /**< The derived gain, A1 = -Kp - 2Kd. */
+    q31_t A2;            /**< The derived gain, A2 = Kd . */
+    q31_t state[3];      /**< The state array of length 3. */
+    q31_t Kp;            /**< The proportional gain. */
+    q31_t Ki;            /**< The integral gain. */
+    q31_t Kd;            /**< The derivative gain. */
+  } arm_pid_instance_q31;
+
+  /**
+   * @brief Instance structure for the floating-point PID Control.
+   */
+  typedef struct
+  {
+    float32_t A0;          /**< The derived gain, A0 = Kp + Ki + Kd . */
+    float32_t A1;          /**< The derived gain, A1 = -Kp - 2Kd. */
+    float32_t A2;          /**< The derived gain, A2 = Kd . */
+    float32_t state[3];    /**< The state array of length 3. */
+    float32_t Kp;          /**< The proportional gain. */
+    float32_t Ki;          /**< The integral gain. */
+    float32_t Kd;          /**< The derivative gain. */
+  } arm_pid_instance_f32;
+
+
+
+  /**
+   * @brief  Initialization function for the floating-point PID Control.
+   * @param[in,out] S               points to an instance of the PID structure.
+   * @param[in]     resetStateFlag  flag to reset the state. 0 = no change in state 1 = reset the state.
+   */
+  void arm_pid_init_f32(
+  arm_pid_instance_f32 * S,
+  int32_t resetStateFlag);
+
+
+  /**
+   * @brief  Reset function for the floating-point PID Control.
+   * @param[in,out] S  is an instance of the floating-point PID Control structure
+   */
+  void arm_pid_reset_f32(
+  arm_pid_instance_f32 * S);
+
+
+  /**
+   * @brief  Initialization function for the Q31 PID Control.
+   * @param[in,out] S               points to an instance of the Q15 PID structure.
+   * @param[in]     resetStateFlag  flag to reset the state. 0 = no change in state 1 = reset the state.
+   */
+  void arm_pid_init_q31(
+  arm_pid_instance_q31 * S,
+  int32_t resetStateFlag);
+
+
+  /**
+   * @brief  Reset function for the Q31 PID Control.
+   * @param[in,out] S   points to an instance of the Q31 PID Control structure
+   */
+
+  void arm_pid_reset_q31(
+  arm_pid_instance_q31 * S);
+
+
+  /**
+   * @brief  Initialization function for the Q15 PID Control.
+   * @param[in,out] S               points to an instance of the Q15 PID structure.
+   * @param[in]     resetStateFlag  flag to reset the state. 0 = no change in state 1 = reset the state.
+   */
+  void arm_pid_init_q15(
+  arm_pid_instance_q15 * S,
+  int32_t resetStateFlag);
+
+
+  /**
+   * @brief  Reset function for the Q15 PID Control.
+   * @param[in,out] S  points to an instance of the q15 PID Control structure
+   */
+  void arm_pid_reset_q15(
+  arm_pid_instance_q15 * S);
+  
+  /**
+   * @ingroup groupController
+   */
+
+  /**
+   * @defgroup PID PID Motor Control
+   *
+   * A Proportional Integral Derivative (PID) controller is a generic feedback control
+   * loop mechanism widely used in industrial control systems.
+   * A PID controller is the most commonly used type of feedback controller.
+   *
+   * This set of functions implements (PID) controllers
+   * for Q15, Q31, and floating-point data types.  The functions operate on a single sample
+   * of data and each call to the function returns a single processed value.
+   * <code>S</code> points to an instance of the PID control data structure.  <code>in</code>
+   * is the input sample value. The functions return the output value.
+   *
+   * \par Algorithm:
+   * <pre>
+   *    y[n] = y[n-1] + A0 * x[n] + A1 * x[n-1] + A2 * x[n-2]
+   *    A0 = Kp + Ki + Kd
+   *    A1 = (-Kp ) - (2 * Kd )
+   *    A2 = Kd  </pre>
+   *
+   * \par
+   * where \c Kp is proportional constant, \c Ki is Integral constant and \c Kd is Derivative constant
+   *
+   * \par
+   * \image html PID.gif "Proportional Integral Derivative Controller"
+   *
+   * \par
+   * The PID controller calculates an "error" value as the difference between
+   * the measured output and the reference input.
+   * The controller attempts to minimize the error by adjusting the process control inputs.
+   * The proportional value determines the reaction to the current error,
+   * the integral value determines the reaction based on the sum of recent errors,
+   * and the derivative value determines the reaction based on the rate at which the error has been changing.
+   *
+   * \par Instance Structure
+   * The Gains A0, A1, A2 and state variables for a PID controller are stored together in an instance data structure.
+   * A separate instance structure must be defined for each PID Controller.
+   * There are separate instance structure declarations for each of the 3 supported data types.
+   *
+   * \par Reset Functions
+   * There is also an associated reset function for each data type which clears the state array.
+   *
+   * \par Initialization Functions
+   * There is also an associated initialization function for each data type.
+   * The initialization function performs the following operations:
+   * - Initializes the Gains A0, A1, A2 from Kp,Ki, Kd gains.
+   * - Zeros out the values in the state buffer.
+   *
+   * \par
+   * Instance structure cannot be placed into a const data section and it is recommended to use the initialization function.
+   *
+   * \par Fixed-Point Behavior
+   * Care must be taken when using the fixed-point versions of the PID Controller functions.
+   * In particular, the overflow and saturation behavior of the accumulator used in each function must be considered.
+   * Refer to the function specific documentation below for usage guidelines.
+   */
+
+  /**
+   * @addtogroup PID
+   * @{
+   */
+
+  /**
+   * @brief  Process function for the floating-point PID Control.
+   * @param[in,out] S   is an instance of the floating-point PID Control structure
+   * @param[in]     in  input sample to process
+   * @return out processed output sample.
+   */
+  static __INLINE float32_t arm_pid_f32(
+  arm_pid_instance_f32 * S,
+  float32_t in)
+  {
+    float32_t out;
+
+    /* y[n] = y[n-1] + A0 * x[n] + A1 * x[n-1] + A2 * x[n-2]  */
+    out = (S->A0 * in) +
+      (S->A1 * S->state[0]) + (S->A2 * S->state[1]) + (S->state[2]);
+
+    /* Update state */
+    S->state[1] = S->state[0];
+    S->state[0] = in;
+    S->state[2] = out;
+
+    /* return to application */
+    return (out);
+
+  }
+
+  /**
+   * @brief  Process function for the Q31 PID Control.
+   * @param[in,out] S  points to an instance of the Q31 PID Control structure
+   * @param[in]     in  input sample to process
+   * @return out processed output sample.
+   *
+   * <b>Scaling and Overflow Behavior:</b>
+   * \par
+   * The function is implemented using an internal 64-bit accumulator.
+   * The accumulator has a 2.62 format and maintains full precision of the intermediate multiplication results but provides only a single guard bit.
+   * Thus, if the accumulator result overflows it wraps around rather than clip.
+   * In order to avoid overflows completely the input signal must be scaled down by 2 bits as there are four additions.
+   * After all multiply-accumulates are performed, the 2.62 accumulator is truncated to 1.32 format and then saturated to 1.31 format.
+   */
+  static __INLINE q31_t arm_pid_q31(
+  arm_pid_instance_q31 * S,
+  q31_t in)
+  {
+    q63_t acc;
+    q31_t out;
+
+    /* acc = A0 * x[n]  */
+    acc = (q63_t) S->A0 * in;
+
+    /* acc += A1 * x[n-1] */
+    acc += (q63_t) S->A1 * S->state[0];
+
+    /* acc += A2 * x[n-2]  */
+    acc += (q63_t) S->A2 * S->state[1];
+
+    /* convert output to 1.31 format to add y[n-1] */
+    out = (q31_t) (acc >> 31u);
+
+    /* out += y[n-1] */
+    out += S->state[2];
+
+    /* Update state */
+    S->state[1] = S->state[0];
+    S->state[0] = in;
+    S->state[2] = out;
+
+    /* return to application */
+    return (out);
+  }
+
+
+  /**
+   * @brief  Process function for the Q15 PID Control.
+   * @param[in,out] S   points to an instance of the Q15 PID Control structure
+   * @param[in]     in  input sample to process
+   * @return out processed output sample.
+   *
+   * <b>Scaling and Overflow Behavior:</b>
+   * \par
+   * The function is implemented using a 64-bit internal accumulator.
+   * Both Gains and state variables are represented in 1.15 format and multiplications yield a 2.30 result.
+   * The 2.30 intermediate results are accumulated in a 64-bit accumulator in 34.30 format.
+   * There is no risk of internal overflow with this approach and the full precision of intermediate multiplications is preserved.
+   * After all additions have been performed, the accumulator is truncated to 34.15 format by discarding low 15 bits.
+   * Lastly, the accumulator is saturated to yield a result in 1.15 format.
+   */
+  static __INLINE q15_t arm_pid_q15(
+  arm_pid_instance_q15 * S,
+  q15_t in)
+  {
+    q63_t acc;
+    q15_t out;
+
+#ifndef ARM_MATH_CM0_FAMILY
+    __SIMD32_TYPE *vstate;
+
+    /* Implementation of PID controller */
+
+    /* acc = A0 * x[n]  */
+    acc = (q31_t) __SMUAD((uint32_t)S->A0, (uint32_t)in);
+
+    /* acc += A1 * x[n-1] + A2 * x[n-2]  */
+    vstate = __SIMD32_CONST(S->state);
+    acc = (q63_t)__SMLALD((uint32_t)S->A1, (uint32_t)*vstate, (uint64_t)acc);
+#else
+    /* acc = A0 * x[n]  */
+    acc = ((q31_t) S->A0) * in;
+
+    /* acc += A1 * x[n-1] + A2 * x[n-2]  */
+    acc += (q31_t) S->A1 * S->state[0];
+    acc += (q31_t) S->A2 * S->state[1];
+#endif
+
+    /* acc += y[n-1] */
+    acc += (q31_t) S->state[2] << 15;
+
+    /* saturate the output */
+    out = (q15_t) (__SSAT((acc >> 15), 16));
+
+    /* Update state */
+    S->state[1] = S->state[0];
+    S->state[0] = in;
+    S->state[2] = out;
+
+    /* return to application */
+    return (out);
+  }
