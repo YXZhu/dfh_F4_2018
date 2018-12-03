@@ -29,9 +29,10 @@ CCMRAM float disA_CM,disB_CM;
 CCMRAM arm_pid_instance_f32 SPDA_PID,SPDB_PID;
 
 
-#define TurnSpeed 20 // 转弯速度
+#define TurnSpeed 30 // 转弯速度
 #define MiniDis 75
 #define MaxDis  100
+
 #define disHold 85 //毫米
 
 CCMRAM int16_t angle_temp1,angle_temp2,angle_temp3,angle_temp4,angle_time;
@@ -332,13 +333,16 @@ extern osThreadId mpuHandle;
 extern osThreadId moto_controlHandle;
 extern osThreadId bzHandle;
 extern osThreadId Echo_1Handle;
+
+extern int16_t LowSpeed; // 低速时速度
+#define SlowDownDis  300// 开始减速距离 80cm
 CCMRAM arm_pid_instance_f32 EdjlXCtrlPid,EdjlYCtrlPid; // X 水平方向距离 固定某一距离 Y 垂直方向 平行轨道
 uint8_t Edjldebug;
 CCMRAM int32_t outEdjlX,outEdjlY,inputError;
 //int16_t YAWCtrl,YawError;
 void moto_jztask(void const * argument)
 {
-	
+	uint32_t jzspeed;
 	TickType_t xLastWakeTime;
 	const TickType_t xFrequency = 5;
 	const TickType_t xFrequency1 = 5;
@@ -376,6 +380,19 @@ void moto_jztask(void const * argument)
 			
 			case 1:
 			{
+				if(speed > 0) // 提前预减速 当speed大于LowSpeed时 不受逻辑影响 
+				{
+					if(speed == LowSpeed)
+					{
+							if(EDjl1 < 400) //  根据距离减速
+								jzspeed = (speed - LowSpeed)*((EDjl1-SlowDownDis)/100)+LowSpeed;
+							else jzspeed = LowSpeed;
+					}
+					else jzspeed = speed;
+				}
+				else
+					jzspeed = 0;
+				
 				if(Edjldebug)
 				{
 					Edjldebug = 0;
@@ -396,31 +413,8 @@ void moto_jztask(void const * argument)
 					outEdjlY = LIMIT(outEdjlY,-30,30);
 					outEdjlX = LIMIT(outEdjlX,-38,38);
 					
-					setSPA = speed + outEdjlY + outEdjlX;
-					setSPB = speed - outEdjlY - outEdjlX;
-					//YawError = YAW + 18000 - YAWCtrl;
-					//if(YawError > 18000) YawError = 36000 - YawError;	
-//					if(ABS(YawError) < 1200) 
-//					{
-//						setSPA = speed + outEdjlY + outEdjlX;
-//						setSPB = speed - outEdjlY - outEdjlX;
-//					}
-//					else
-//					{
-//						if(YawError<0)
-//						{
-//							setSPA = speed -10;
-//							setSPB = speed;
-//						}
-//						else
-//						{
-//							setSPA = speed;
-//							setSPB = speed -10;
-//						}
-//						arm_pid_reset_f32(&EdjlXCtrlPid);
-//						arm_pid_reset_f32(&EdjlYCtrlPid);
-//						//YawError = 0;
-//					}
+					setSPA = jzspeed + outEdjlY + outEdjlX;
+					setSPB = jzspeed - outEdjlY - outEdjlX;
 				}
 				else
 				{
@@ -487,29 +481,6 @@ void moto_jztask(void const * argument)
 					
 					setSPA = -speed + outEdjlY - outEdjlX;
 					setSPB = -speed - outEdjlY + outEdjlX;
-					//YawError = YAW + 18000 - YAWCtrl;
-					//if(YawError > 18000) YawError = 36000 - YawError;	
-//					if(ABS(YawError) < 1200) 
-//					{
-//						setSPA = speed + outEdjlY + outEdjlX;
-//						setSPB = speed - outEdjlY - outEdjlX;
-//					}
-//					else
-//					{
-//						if(YawError<0)
-//						{
-//							setSPA = speed -10;
-//							setSPB = speed;
-//						}
-//						else
-//						{
-//							setSPA = speed;
-//							setSPB = speed -10;
-//						}
-//						arm_pid_reset_f32(&EdjlXCtrlPid);
-//						arm_pid_reset_f32(&EdjlYCtrlPid);
-//						//YawError = 0;
-//					}
 				}
 				else
 				{
@@ -898,7 +869,7 @@ static uint32_t SpeedACtrl(arm_pid_instance_f32 *PID, int32_t setspeedA ,float s
 	static float outpida_t;
 	static int32_t outpidint,outpidintold; // 整形判断
 	arm_abs_f32(&outpida,&outpida_t,1);
-	if(outpida_t > 250 /*|| (setspeedA_old/setspeedA)<0*/) // 判断电机正反转 参数变化过大 参数复位
+	if(outpida_t > 800 /*|| (setspeedA_old/setspeedA)<0*/) // 判断电机正反转 参数变化过大 参数复位
 	{
 		//setspeedA_old = setspeedA;
 		outpida = 0;
@@ -971,7 +942,8 @@ static uint32_t SpeedBCtrl(arm_pid_instance_f32 *PID, int8_t setspeedB ,float sp
 	static int32_t outpidint,outpidintold; // 整形判断
 	
 	arm_abs_f32(&outpidb,&outpidb_t,1);//|| setspeedA == 0
-	if(/*(setspeedB_old/setspeedB) < 0  ||*/ outpidb_t > 250) // 判断电机正反转 参数变化过大 参数复位
+	
+	if(/*(setspeedB_old/setspeedB) < 0  ||*/ outpidb_t > 800) // 判断电机正反转 参数变化过大 参数复位
 	{
 		//setspeedB_old = setspeedB;
 		outpidb = 0;
@@ -1034,6 +1006,11 @@ void moto_controltask(void const * argument)
 	int32_t SPA_temp,SPB_temp;
 	uint32_t SPDA_t,SPDB_t;
 	int32_t spdt;
+	HAL_GPIO_WritePin(N1_GPIO_Port,N1_Pin,GPIO_PIN_SET);
+	HAL_GPIO_WritePin(N2_GPIO_Port,N2_Pin,GPIO_PIN_SET);
+	HAL_GPIO_WritePin(N3_GPIO_Port,N3_Pin,GPIO_PIN_SET);
+	HAL_GPIO_WritePin(N4_GPIO_Port,N4_Pin,GPIO_PIN_SET);
+	
 	HAL_TIM_Encoder_Start(&htim4,TIM_CHANNEL_1);
 	HAL_TIM_Encoder_Start(&htim4,TIM_CHANNEL_2);
 	HAL_TIM_Encoder_Start(&htim8,TIM_CHANNEL_1);
@@ -1042,8 +1019,8 @@ void moto_controltask(void const * argument)
 	HAL_TIM_PWM_Start(&htim9,TIM_CHANNEL_1);
    HAL_TIM_PWM_Start(&htim9,TIM_CHANNEL_2);
 	
-	__HAL_TIM_SetCompare(&htim9,TIM_CHANNEL_1,0);
-	__HAL_TIM_SetCompare(&htim9,TIM_CHANNEL_2,0);
+	__HAL_TIM_SetCompare(&htim9,TIM_CHANNEL_1,50);
+	__HAL_TIM_SetCompare(&htim9,TIM_CHANNEL_2,50);
 	//while(1);
 	//moto_front();
 	setSPA = 0;

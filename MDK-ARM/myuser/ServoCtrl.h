@@ -30,7 +30,8 @@ typedef __packed struct  // 数据尽可能对齐
 }  recresu_t;
 
 void ServoCtrlFreertosInit(void);
-
+// 设置舵机速度 角度
+void setServo(ServoCtrl_t *ServoCtr,float Speed,uint8_t Angle);
 extern ServoCtrl_t ServoCtrlS1;
 extern ServoCtrl_t ServoCtrlS2;
 extern ServoCtrl_t ServoCtrlS3;

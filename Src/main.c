@@ -447,6 +447,11 @@ static void MX_TIM3_Init(void)
     _Error_Handler(__FILE__, __LINE__);
   }
 
+  if (HAL_TIM_PWM_ConfigChannel(&htim3, &sConfigOC, TIM_CHANNEL_4) != HAL_OK)
+  {
+    _Error_Handler(__FILE__, __LINE__);
+  }
+
   HAL_TIM_MspPostInit(&htim3);
 
 }
@@ -666,10 +671,10 @@ static void MX_GPIO_Init(void)
   HAL_GPIO_Init(mgstart_GPIO_Port, &GPIO_InitStruct);
 
   /*Configure GPIO pins : N1_Pin N2_Pin N3_Pin N4_Pin */
-  GPIO_InitStruct.Pin = N1_Pin|N2_Pin|N3_Pin|N4_Pin;
+  GPIO_InitStruct.Pin = N1_Pin|N2_Pin|N3_Pin|N4_Pin|Startnum_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_OD;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOD, &GPIO_InitStruct);
 
   /*Configure GPIO pins : ENA2_Pin D_Pin C_Pin B_Pin 
@@ -694,13 +699,23 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_PULLDOWN;
   HAL_GPIO_Init(HW_1_GPIO_Port, &GPIO_InitStruct);
 
+  /*Configure GPIO pins : LEFT_Int_Pin Right_Int_Pin */
+  GPIO_InitStruct.Pin = LEFT_Int_Pin|Right_Int_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_IT_FALLING;
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
+  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+
+  /* EXTI interrupt init*/
+  HAL_NVIC_SetPriority(EXTI9_5_IRQn, 5, 0);
+  HAL_NVIC_EnableIRQ(EXTI9_5_IRQn);
+
 }
 
 /* USER CODE BEGIN 4 */
 extern uint8_t moto_control1;
 extern int32_t setSPA,setSPB;
 int32_t setSPEED,speed;
-uint8_t setangle,angleJS,motofrontorturn,setfangx = 0;//前后
+uint8_t angleJS,setangle,motofrontorturn,setfangx = 0;//前后
 extern int16_t ReadDisA,ReadDisB;
 
 //#define LowSpeed 20
@@ -717,14 +732,14 @@ extern int16_t ReadDisA,ReadDisB;
 #define back 6
 #define right 4
 #define left 3
-uint16_t TurnDis = 170;
+uint16_t TurnDis = 170; //
 int16_t LowSpeed = 25;
 void main_1task(void const * argument)
 {
 	//setangle = 0;
 	angleJS = 0;
 	motofrontorturn = 0;
-	setSPEED = 65;
+	setSPEED = 40;
 	osDelay(500);
 	//vTaskSuspend(mpuHandle);
 	//HAL_GPIO_WritePin(GPIOG, GPIO_PIN_15,GPIO_PIN_SET);
@@ -1151,12 +1166,13 @@ void main_1task(void const * argument)
 				if(EDjl5 < ChangeDis)
 				{
 					speed = setSPEED;
-					moto_control1 = frontJ;
+					moto_control1 = front;
 				}
 				else
 				{
+					osDelay(500);
 					moto_control1 = 0;
-					osDelay(300);
+
 					moto_stop();
 					angleJS = 14;
 				}
@@ -1183,7 +1199,7 @@ uint8_t JL[] = {"F---.- L---.- E---.- R---.- G---.- B---.- ---°  -----, -----, 
   for(;;)
   { 
 
-		print_usart2("F%d\r\nL%d\r\nE%d\r\nR%d\r\nG%d\r\nB%d\r\n",EDjl1,EDjl2,EDjl3,EDjl4,EDjl5,EDjl6);
+		//print_usart2("F%d\r\nL%d\r\nE%d\r\nR%d\r\nG%d\r\nB%d\r\n",EDjl1,EDjl2,EDjl3,EDjl4,EDjl5,EDjl6);
 			  
 	    //angle1 = angle;    
 	   //JL[1] = echo1[0]/10000+48;

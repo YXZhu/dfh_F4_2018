@@ -8,7 +8,7 @@
 //unsigned char SW1,SW2,SW3,SW4,SW5,SW6;
 //unsigned char SW1;
 CCMRAM float ED1,ED2,ED3,ED4,ED5,ED6;
-uint32_t EDjl1,EDjl2,EDjl3,EDjl4,EDjl5,EDjl6;
+uint32_t EDjl1,EDjl2,EDjl3,EDjl4,EDjl5,EDjl6; // ≥¨…˘≤®æ‡¿Î
 //unsigned char temp1,temp2,temp3,temp4,temp5,temp6;	
 uint32_t echo1[2] = {0}, echo2[2] = {0}, echo3[2] = {0}, echo4[2] = {0},echo5[2] = {0},echo6[2] = {0};
 

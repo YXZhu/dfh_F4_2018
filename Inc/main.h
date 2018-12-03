@@ -97,6 +97,8 @@
 #define SPDA_1_GPIO_Port GPIOC
 #define mgstart_Pin GPIO_PIN_0
 #define mgstart_GPIO_Port GPIOD
+#define Startnum_Pin GPIO_PIN_5
+#define Startnum_GPIO_Port GPIOD
 #define N1_Pin GPIO_PIN_1
 #define N1_GPIO_Port GPIOD
 #define N2_Pin GPIO_PIN_2
@@ -121,6 +123,12 @@
 #define LED_GPIO_Port GPIOG
 #define HW_1_Pin GPIO_PIN_4
 #define HW_1_GPIO_Port GPIOB
+#define LEFT_Int_Pin GPIO_PIN_8
+#define LEFT_Int_GPIO_Port GPIOB
+#define LEFT_Int_EXTI_IRQn EXTI9_5_IRQn
+#define Right_Int_Pin GPIO_PIN_9
+#define Right_Int_GPIO_Port GPIOB
+#define Right_Int_EXTI_IRQn EXTI9_5_IRQn
 
 /* ########################## Assert Selection ############################## */
 /**
