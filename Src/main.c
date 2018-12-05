@@ -722,9 +722,9 @@ extern int16_t ReadDisA,ReadDisB;
 //#define TurnDis 160  //250
 #define LowDis 400
 #define ChangeDis 300 //距离变化最大值
-#define TurnTime 5
+#define TurnTime 5 // 
 
-#define Turnworkdis 13 //检测转弯后继续行走距离
+#define Turnworkdis 13 //检测转弯后继续行走距离 13CM
 
 #define frontJ 1
 #define backJ 2

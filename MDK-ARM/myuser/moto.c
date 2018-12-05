@@ -411,7 +411,7 @@ void moto_jztask(void const * argument)
 					outEdjlY = arm_pid_f32(&EdjlYCtrlPid,LIMIT(inputError,-20,20));
 
 					outEdjlY = LIMIT(outEdjlY,-30,30);
-					outEdjlX = LIMIT(outEdjlX,-38,38);
+					outEdjlX = LIMIT(outEdjlX,-39,39);
 					
 					setSPA = jzspeed + outEdjlY + outEdjlX;
 					setSPB = jzspeed - outEdjlY - outEdjlX;

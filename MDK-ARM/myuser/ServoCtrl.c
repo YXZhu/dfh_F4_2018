@@ -29,7 +29,7 @@ uint32_t Angle2Pulse(uint8_t angle,uint8_t exchange);
 uint8_t AngleRun(ServoCtrl_t *ServoCtr);
 void ServoCtrlTask(void const * argument);
 void readResu(void);
-void catsome(void);
+void catsome(uint8_t state1);
 void ServoCtrlFreertosInit(void) // 中 ：s1 120 160 s2 50 s3 0 靠右 s1 120 170 s2 55 s3 18 靠左 s1 100 130 s2 42 s3 18
 {
 	/* 初始化舵机*/
@@ -54,10 +54,10 @@ void ServoCtrlFreertosInit(void) // 中 ：s1 120 160 s2 50 s3 0 靠右 s1 120 170 s
 	ServoCtrlCam.MinAngleSet = 0;
 	ServoCtrlCam.MaxAngleSet = 180;
 	ServoCtrlCam.ServoAngleSet = 90;  //35 160  // 前进方向 顺时针 为15 逆时针为 180
-	ServoCtrlCam.ServoAngleNow = 95;
+	ServoCtrlCam.ServoAngleNow = 90;
 	ServoCtrlCam.ServoSpeed = 180;	
 	
-  osThreadDef(ServoCtrlTask, ServoCtrlTask, osPriorityNormal, 0, 128);
+  osThreadDef(ServoCtrlTask, ServoCtrlTask, osPriorityNormal, 0, 256);
   ServoCtrlHandle = osThreadCreate(osThread(ServoCtrlTask), NULL);
   
 }
@@ -70,9 +70,10 @@ void ServoCtrlTask(void const * argument)
 	uint32_t timerun;
 	//uint8_t sendKen[2];
 	uint8_t catSet; //是否采摘标志
+	uint8_t state1;
 	memset(&recresu,0,sizeof(recresu));
 	memset(&rec,0,sizeof(rec));
-	osDelay(500);
+	osDelay(100);
 	HAL_TIM_PWM_Start_IT(&SxTime,S1_OUT);
 	HAL_TIM_PWM_Start_IT(&SxTime,S2_OUT);
 	HAL_TIM_PWM_Start_IT(&SxTime,S3_OUT);
@@ -81,15 +82,17 @@ void ServoCtrlTask(void const * argument)
 	//ServoCtrlS2.TimeLast = osKernelSysTick();
 	//ServoCtrlS3.TimeLast = osKernelSysTick();
 	//sendKen[0] = 0xAD;
-	__HAL_TIM_SET_COMPARE(&SxTime,S1_OUT,Angle2Pulse(AngleRun(&ServoCtrlS1),0));
-	__HAL_TIM_SET_COMPARE(&SxTime,S2_OUT,Angle2Pulse(AngleRun(&ServoCtrlS2),0));
-	__HAL_TIM_SET_COMPARE(&SxTime,S3_OUT,Angle2Pulse(AngleRun(&ServoCtrlS3),0));
+	//__HAL_TIM_SET_COMPARE(&SxTime,S1_OUT,Angle2Pulse(AngleRun(&ServoCtrlS1),0));
+	//__HAL_TIM_SET_COMPARE(&SxTime,S2_OUT,Angle2Pulse(AngleRun(&ServoCtrlS2),0));
+	//__HAL_TIM_SET_COMPARE(&SxTime,S3_OUT,Angle2Pulse(AngleRun(&ServoCtrlS3),0));
 	
 	__HAL_UART_ENABLE_IT(&huart3,UART_IT_IDLE); //开启串口空闲中断 ，不定长接收
    HAL_UART_Receive_DMA(&huart3,rec,sizeof(rec));
 	timeZero = osKernelSysTick();
 	if(!HAL_GPIO_ReadPin(Startnum_GPIO_Port,Startnum_Pin)) catSet = 0;
 	else catSet = 1;
+	setServo(&ServoCtrlS2,100,60);
+	setServo(&ServoCtrlS3,100,95);
 	//timerun = timeZero; // 记录当前时间
   for(;;)
   {  
@@ -111,13 +114,17 @@ void ServoCtrlTask(void const * argument)
 			  timeZero = osKernelSysTick(); 
 			  
 		  }
+		  state1 = 0;
+		  if(event.value.signals&0x20) state1 = 1; //left
+		  if(event.value.signals&0x40) state1 = 2; //right
+		  
 	  }
 	  else if(event.status == osEventTimeout)
 	  {
 		  
 	  }
-	  if(catSet == 1) catsome(); // 开启采摘
-	  else setServo(&ServoCtrlS2,100,60); // 抬高采摘器 
+	  if(catSet == 1) {catsome(state1);} // 开启采摘
+	  else {setServo(&ServoCtrlS2,100,60);} // 抬高采摘器 
 	  if(osKernelSysTick() - timeZero > 200) // 200ms 清零
 	  {
 		 
@@ -135,19 +142,28 @@ extern int32_t setSPEED; // 设置速度
 extern uint8_t angleJS; //记录转弯的次数 不可更改！！
 extern uint8_t moto_control1; //设置电机状态 不可更改 4 右转 5 左转
 //resu.x 320 ~ 0 左到右 resu.y 240 ~ 0 上到下
-void catsome()
+void catsome(uint8_t state1)
 {
-	static uint8_t state;
+	static uint8_t state = 0;
 	if(moto_control1 == 4) setServo(&ServoCtrlS3,100,180);
-	else if(moto_control1 == 5) setServo(&ServoCtrlS3,100,15);
+	else if(moto_control1 == 3) setServo(&ServoCtrlS3,100,15);
 	else
 	{
 		switch(angleJS)
 		{
 			case 0:
+			{
 				setServo(&ServoCtrlS2,100,60);
+				setServo(&ServoCtrlS3,100,95);
+				setServo(&ServoCtrlCam,180,60);
+			}
 			break;
 			case 1:
+			case 3:
+			case 5:
+			case 9:
+			case 11:
+			{
 				if(state == 0)
 				{
 					state = 1;
@@ -158,14 +174,37 @@ void catsome()
 				else
 				{
 					if(recresu.bg != 0)
+					//if(state1 == 2)
 					{
-						if(recresu.x > 150 && recresu.w >= 50) // 认为是黄球
+						if(recresu.x > 150 && recresu.w >= 30) // 认为是黄球
 						{						
 							setServo(&ServoCtrlS3,100,180);
+							setServo(&ServoCtrlS2,100,23);
 							setServo(&ServoCtrlS1,180,120);
 						}
 					}
 				}
+			}
+			break;
+			case 50:
+			{
+				if((uint32_t)ServoCtrlCam.ServoAngleNow == 60)
+				{
+					ServoCtrlCam.ServoAngleSet = 120;
+				}
+				else if((uint32_t)ServoCtrlCam.ServoAngleNow == 120)
+				{
+					ServoCtrlCam.ServoAngleSet = 60;
+				}
+				//ServoCtrlS3.ServoAngleNow == ServoCtrlS3.ServoAngleSet
+			}
+			break;
+			//case 2:
+			//break;
+			default:
+				state = 0;
+				setServo(&ServoCtrlS3,100,95);
+			   setServo(&ServoCtrlS2,100,18);
 			break;
 		}
 	}
@@ -293,11 +332,11 @@ uint8_t AngleRun(ServoCtrl_t *ServoCtr)
 	 if(ServoCtrlHandle == NULL) return;
 	 if(GPIO_Pin == Right_Int_Pin)
 	 {
-		 osSignalSet(ServoCtrlHandle,0x20);
+		 osSignalSet(ServoCtrlHandle,0x40);
 	 }
 	 if(GPIO_Pin == LEFT_Int_Pin)
 	 {
-		 osSignalSet(ServoCtrlHandle,0x40);
+		 osSignalSet(ServoCtrlHandle,0x20);
 	 }
 	 
 	 
