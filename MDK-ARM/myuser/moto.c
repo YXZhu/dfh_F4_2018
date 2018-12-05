@@ -378,7 +378,7 @@ void moto_jztask(void const * argument)
 			}
 			break;
 			
-			case 1:
+			case 1: ///eeee 前进
 			{
 				if(speed > 0) // 提前预减速 当speed大于LowSpeed时 不受逻辑影响 
 				{
